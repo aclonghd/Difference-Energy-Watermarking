@@ -11,7 +11,7 @@ public class DEW {
 	private int[] binaryMessage;
 	private ArrayList<ArrayList<int[][]>> blockNxNList;
 	private ArrayList<YCrCb[][]> blockYCrCb;
-    private String postionKey;
+    private String positionKey;
     
     public DEW(int D, int n, int minC, int[] binaryMessage, BufferedImage frame) {
     	this.D = D;
@@ -20,7 +20,7 @@ public class DEW {
     	this.binaryMessage = binaryMessage;
     	this.frame = frame;
     	blockYCrCb = new ArrayList<>();
-    	postionKey = "";
+    	positionKey = "";
     }
     
     public void reSetupArgs(int D, int n, int minC, int[] binaryMessage) {
@@ -36,7 +36,7 @@ public class DEW {
     
     public void execEmbeddedMessage() throws Exception {
     	// Find index cut-off C in frame -----------------------------------------------------
-    	postionKey = "";
+    	positionKey = "";
         int k = 0;
         for (int i = 0; i < blockNxNList.size(); i++) {
             if(k == binaryMessage.length) break;
@@ -44,10 +44,10 @@ public class DEW {
             if(mapIndexC == null || mapIndexC.isEmpty()) continue;
             blockNxNList.set(i, embedMessage(blockNxNList.get(i), k, mapIndexC, i));
             k++;
-            postionKey += i+" ";
+            positionKey += i+" ";
         }
-        System.out.println(postionKey);
-        if(postionKey.trim().split(" ").length != binaryMessage.length){
+        System.out.println(positionKey);
+        if(positionKey.trim().split(" ").length != binaryMessage.length){
             throw new Exception("Không đủ vị trí để nhúng");
 
         }
@@ -185,8 +185,8 @@ public class DEW {
 		return n;
 	}
 	
-    public String getPostionKey() {
-    	return postionKey;
+    public String getPositionKey() {
+    	return positionKey;
     }
 	
 }

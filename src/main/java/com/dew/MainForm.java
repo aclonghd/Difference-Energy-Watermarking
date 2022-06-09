@@ -34,6 +34,7 @@ import org.bytedeco.javacv.Java2DFrameConverter;
  *
  * @author Vũ Gia Long - B18DCAT154
  */
+@SuppressWarnings("serial")
 public class MainForm extends javax.swing.JFrame {
 
     /**
@@ -46,8 +47,8 @@ public class MainForm extends javax.swing.JFrame {
     private DCT dct;
     private int videoHeight, videoWidth;
     private BufferedImage frame, frameDecode;
-    private String filePath1, filePath2;
-    private String postionKey, videoType;
+    private String filePath1, filePath2, filePositionKey;
+    private String positionKey, videoType;
     private DEW dew;
     private boolean isRetry;
 
@@ -66,12 +67,11 @@ public class MainForm extends javax.swing.JFrame {
         jTextField6.setText("70");
         jTextField7.setText("0");
         step = 0;
-        postionKey = "";
+        positionKey = "";
     }
 
     private int[] binaryTranform() {
         message = jTextField3.getText();
-        System.out.println("Message: " + message);
         
         byte[] bin = message.getBytes();
         String tmp = "";
@@ -120,7 +120,7 @@ public class MainForm extends javax.swing.JFrame {
                 res.add(temp);
             }
         }
-        System.out.println(res.size());
+        System.out.println("Số lượng khối lc: "+ res.size());
         return res;
     }
 
@@ -165,7 +165,6 @@ public class MainForm extends javax.swing.JFrame {
                 sumA += blockDCTA[row][col] * blockDCTA[row][col];
             }
         }
-        System.out.println("SumA:" + sumA + ", sumB: " + sumB);
         if (sumA > sumB) {
             return 0;
         }
@@ -183,23 +182,29 @@ public class MainForm extends javax.swing.JFrame {
         FFmpegFrameRecorder frameRecorder = new FFmpegFrameRecorder(new File("E:\\Nam 4\\KTGT\\videomahoa."+videoType), videoWidth, videoHeight);
         try {
         	progress.showFrame();
+        	
+        	frameGrabber.setFrameNumber(0);
             frameGrabber.start();
+            frameRecorder.setAudioChannels(frameGrabber.getAudioChannels());
+            frameRecorder.setAudioBitrate(frameGrabber.getAudioBitrate());
             frameRecorder.setFrameRate(frameGrabber.getFrameRate());
             frameRecorder.setVideoBitrate(frameGrabber.getVideoBitrate());
             frameRecorder.start();
             int frameNumber = 0;
             Frame frameGrab;
-            
-            while ((frameGrab= frameGrabber.grabImage()) != null) {
-                if (frameNumber == 121) {
+            while ((frameGrab= frameGrabber.grabFrame()) != null) {
+            	
+                if (frameNumber == 122) {
                     frameRecorder.record(encodeFrame);
                 }
                 else { 
                     frameRecorder.record(frameGrab);
                 }
-                frameNumber++;
-                System.out.println(frameNumber*100/videoTotalFrame +"%");
-                progress.setValue(frameNumber*100/videoTotalFrame);
+	            if(frameGrab.image != null) {    
+	                frameNumber++;
+	                System.out.println(frameNumber*100/videoTotalFrame +"%");
+	                progress.setValue(frameNumber*100/videoTotalFrame);
+            	}
             }
             System.out.println((frameNumber+2)*100/videoTotalFrame +"%");
             progress.setValue((frameNumber+2)*100/videoTotalFrame);
@@ -207,9 +212,10 @@ public class MainForm extends javax.swing.JFrame {
             frameRecorder.stop();
             frameRecorder.release();
             frameGrabber.close();
+            c.close();
             JOptionPane.showMessageDialog(this, "Hoàn thành");
             System.out.println("Done");
-            writeFileKey(dew.getPostionKey());
+            writeFileKey(dew.getPositionKey());
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -246,16 +252,11 @@ public class MainForm extends javax.swing.JFrame {
         }
         ArrayList<ArrayList<int[][]>> blockNxNList = getBlockListNxN(blockDCT, frame);
         String m = "";
-        String[] positionInFrame = postionKey.trim().split(" ");
+        String[] positionInFrame = positionKey.trim().split(" ");
         for (int i = 0; i < positionInFrame.length; i++) {
-            
-            System.out.println("Vị trí: " + positionInFrame[i]);
             int t = extractBit(blockNxNList.get(Integer.parseInt(positionInFrame[i])));
             if (t == -1) {
                 break;
-            }
-            if(t == -2){
-                continue;
             }
             if(i % 8 == 0 && i> 0) m += " ";
             m += t;
@@ -286,12 +287,24 @@ public class MainForm extends javax.swing.JFrame {
         FFmpegFrameGrabber frameGrabber = new FFmpegFrameGrabber(filePath);
         try {
             frameGrabber.start();
-            videoTotalFrame = frameGrabber.getLengthInFrames();
-            System.out.println("Tổng số frame: "+ videoTotalFrame);
-            frameGrabber.setFrameNumber(120);
-
+            videoTotalFrame = frameGrabber.getLengthInVideoFrames();
+            int audioLength =frameGrabber.getLengthInAudioFrames();
+            System.out.println("Tổng số frame: "+ videoTotalFrame+ ", audioLength: " + audioLength);
+            System.out.println("Bitrate: " + frameGrabber.getVideoBitrate());
+            
             Java2DFrameConverter c = new Java2DFrameConverter();
-            BufferedImage tmp = c.getBufferedImage(frameGrabber.grabKeyFrame());
+            int frameNumber = 0;
+            Frame fTemp;
+            BufferedImage tmp = null;
+            while((fTemp = frameGrabber.grabImage()) != null) {
+            	if(frameNumber == 122) {
+            		tmp = c.getBufferedImage(fTemp);
+            		break;
+            	}
+            	frameNumber++;
+            }
+            
+             
             videoHeight = tmp.getHeight();
             videoWidth = tmp.getWidth();
             label1.setIcon(new ImageIcon(new ImageIcon(tmp).getImage().getScaledInstance(jPanel5.getWidth(), jPanel5.getHeight(), Image.SCALE_DEFAULT)));
@@ -314,9 +327,10 @@ public class MainForm extends javax.swing.JFrame {
             frameGrabber.start();
             int frameNumber = 0;
             BufferedImage frame = null;
-            while (frameGrabber.grab() != null) {
-                if (frameNumber == 120) {
-                    frame = c.getBufferedImage(frameGrabber.grabFrame());
+            Frame bTmp;
+            while ((bTmp = frameGrabber.grabImage()) != null) {
+                if (frameNumber == 122) {
+                    frame = c.getBufferedImage(bTmp);
                     break;
                 }
                 frameNumber++;
@@ -324,8 +338,6 @@ public class MainForm extends javax.swing.JFrame {
             
             videoHeight = frame.getHeight();
             videoWidth = frame.getWidth();
-            label1.setIcon(new ImageIcon(new ImageIcon(frame).getImage().getScaledInstance(jPanel5.getWidth(), jPanel5.getHeight(), Image.SCALE_DEFAULT)));
-            jPanel5.add(label1);
             c.close();
             frameGrabber.stop();
             frameGrabber.close();
@@ -380,8 +392,8 @@ public class MainForm extends javax.swing.JFrame {
 		try {
 			FileReader fis = new FileReader(filePositionKey);
 			BufferedReader ois = new BufferedReader(fis);
-			postionKey = ois.readLine();
-			System.out.println(postionKey);
+			positionKey = ois.readLine();
+			System.out.println("Position key: " + positionKey);
 			ois.close();
 			fis.close();
 		} catch (Exception e) {
@@ -406,7 +418,7 @@ public class MainForm extends javax.swing.JFrame {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    @SuppressWarnings("unchecked")
+    
     // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
@@ -852,7 +864,8 @@ public class MainForm extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Sai định dạng");
             return;
         }
-        if(postionKey.equals("")) {
+        readFileKey(filePositionKey);
+        if(positionKey.equals("")) {
         	JOptionPane.showMessageDialog(this, "Key không có");
         	return;
         }
@@ -866,9 +879,9 @@ public class MainForm extends javax.swing.JFrame {
         jFileChooser.setFileFilter(filter);
         int returnVal = jFileChooser.showDialog(this, "Chọn file");
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            String filePositionKey = jFileChooser.getSelectedFile().getAbsolutePath();
+            filePositionKey = jFileChooser.getSelectedFile().getAbsolutePath();
             jTextField10.setText(filePositionKey);
-            readFileKey(filePositionKey);
+            
         }
     }  
     
