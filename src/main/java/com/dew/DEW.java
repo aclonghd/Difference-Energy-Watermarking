@@ -6,40 +6,51 @@ import java.util.HashMap;
 import java.util.Map;
 public class DEW {
 	private final DCT dct = new DCT(0);
-	private BufferedImage frame;
-	private int D, n, minC;
-	private int[] binaryMessage;
+	private final BufferedImage frame;
+	private int d, n, cMin;
+	private int[] binaryArr;
 	private ArrayList<ArrayList<int[][]>> blockNxNList;
 	private ArrayList<YCrCb[][]> blockYCrCb;
     private String positionKey;
     
-    public DEW(int D, int n, int minC, int[] binaryMessage, BufferedImage frame) {
-    	this.D = D;
+    public DEW(int D, int n, int cMin, int[] binaryArr, BufferedImage frame) {
+    	this.d = D;
     	this.n = n;
-    	this.minC = minC;
-    	this.binaryMessage = binaryMessage;
+    	this.cMin = cMin;
+    	this.binaryArr = binaryArr;
     	this.frame = frame;
     	blockYCrCb = new ArrayList<>();
     	positionKey = "";
     }
-    
-    public void reSetupArgs(int D, int n, int minC, int[] binaryMessage) {
-    	this.D = D;
-    	this.minC = minC;
-    	this.binaryMessage = binaryMessage;
+
+    /**
+     * re setup arguments
+     * @param d different energy d
+     * @param n size
+     * @param cMin index (min) cut-off C
+     * @param binaryArr binart array
+     */
+    public void reSetupArgs(int d, int n, int cMin, int[] binaryArr) {
+    	this.d = d;
+    	this.cMin = cMin;
+    	this.binaryArr = binaryArr;
     	if(this.n != n) {
     		this.n = n;
 	    	blockYCrCb = new ArrayList<>();
 	    	calBlockNxNlist();
     	}
     }
-    
+
+    /**
+     * Embedded message to frame
+     * @throws Exception
+     */
     public void execEmbeddedMessage() throws Exception {
-    	// Find index cut-off C in frame -----------------------------------------------------
+    	// Find index cut-off C in frame
     	positionKey = "";
         int k = 0;
         for (int i = 0; i < blockNxNList.size(); i++) {
-            if(k == binaryMessage.length) break;
+            if(k == binaryArr.length) break;
             Map<Integer, Integer> mapIndexC = getIndexCutOffC(blockNxNList.get(i));
             if(mapIndexC == null || mapIndexC.isEmpty()) continue;
             blockNxNList.set(i, embedMessage(blockNxNList.get(i), k, mapIndexC, i));
@@ -47,74 +58,63 @@ public class DEW {
             positionKey += i+" ";
         }
         System.out.println(positionKey);
-        if(positionKey.trim().split(" ").length != binaryMessage.length){
+        if(positionKey.trim().split(" ").length != binaryArr.length){
             throw new Exception("Không đủ vị trí để nhúng");
 
         }
     }
     
     public void inverstDCT() {
-        // Inverst DCT -----------------------------------------------------------------------
+        // Inverst DCT
         for (int i = 0; i < blockNxNList.size(); i++) {
             ArrayList<int[][]> blockLC = blockNxNList.get(i);
-            for (int j = 0; j < blockLC.size(); j++) {
-                blockLC.set(j, dct.inverseDCT(dct.dequantitizeImage(blockLC.get(j), true)));
-            }
+            blockLC.replaceAll(inputData -> dct.inverseDCT(dct.dequantitizeImage(inputData, true)));
             blockNxNList.set(i, blockLC);
         }
     }
     
     public void calBlockNxNlist() {
-    	// Divide frame to 8x8 block pixel ----------------------------------------------------
-        ArrayList<BufferedImage> block8x8List = new ArrayList<>();
-        for (int x = 0; x < frame.getHeight(); x = x + 8) {
-            for (int y = 0; y < frame.getWidth(); y = y + 8) {
-                block8x8List.add(frame.getSubimage(y, x, 8, 8));
-            }
-        }
+    	// Divide frame to 8x8 block pixel
+        ArrayList<BufferedImage> block8x8List = CommonUtils.getBlock8x8Pixel(frame);
         
-        // DCT each block pixel --------------------------------------------------------------
+        // DCT each block pixel
         ArrayList<int[][]> blockDCT = new ArrayList<>();
-        for (int i = 0; i < block8x8List.size(); i++) {
+        for (BufferedImage bufferedImage : block8x8List) {
 
             YCrCb[][] yCCmatrix = new YCrCb[8][8];
             int[][] matrix = new int[8][8];
-            for (int x = 0; x < 8; x++) {
-                for (int y = 0; y < 8; y++) {
-                    Color color = new Color(block8x8List.get(i).getRGB(y, x));
+            for (int y = 0; y < 8; y++) {
+                for (int x = 0; x < 8; x++) {
+                    Color color = new Color(bufferedImage.getRGB(x, y));
                     int red = color.getRed();
                     int green = color.getGreen();
                     int blue = color.getBlue();
                     YCrCb yCrCb = new YCrCb(red, green, blue);
-                    yCCmatrix[y][x] = yCrCb;
-                    matrix[y][x] = yCrCb.getY();
+                    yCCmatrix[x][y] = yCrCb;
+                    matrix[x][y] = yCrCb.getY();
                 }
             }
-            int matrixTest[][] = dct.quantitizeImage(dct.forwardDCT(matrix), true);
+            int[][] matrixTest = dct.quantitizeImage(dct.forwardDCT(matrix), true);
             blockYCrCb.add(yCCmatrix);
             blockDCT.add(matrixTest);
         }
         
-        // Relocate all block to ArrayList ---------------------------------------------------
-        blockNxNList = getBlockListNxN(blockDCT, frame);
+        // Relocate all block to ArrayList
+        blockNxNList = getBlockListNxN(blockDCT);
     }
-    
-    private ArrayList<ArrayList<int[][]>> getBlockListNxN(ArrayList<int[][]> blockDCT, BufferedImage frame) {
-        ArrayList<ArrayList<int[][]>> res = new ArrayList<>();
-        int frameWidth = frame.getWidth() / 8;
-        int frameHeight = frame.getHeight()/ 8;
-        for (int i = 0; i < frameHeight / n; i++) {
-            for (int j = 0; j < frameWidth / n; j++) {
-                ArrayList<int[][]> temp = new ArrayList<>();
-                for (int x = 0; x < n; x++) {
-                    for (int y = i * frameWidth * n; y < i * frameWidth * n + n; y++) {
 
-                        temp.add(blockDCT.get(y + x * frameWidth + j * n));
-                    }
-                }
-                res.add(temp);
-            }
-        }
+    /**
+     * Get block list nxn from list block dct
+     * @param blockDCT list block dct
+     * @return block list nxn
+     */
+    private ArrayList<ArrayList<int[][]>> getBlockListNxN(ArrayList<int[][]> blockDCT) {
+        ArrayList<ArrayList<int[][]>> res = CommonUtils.getBlockListNxN(
+                blockDCT,
+                frame.getWidth(),
+                frame.getHeight(),
+                n
+        );
         System.out.println(res.size());
         return res;
     }
@@ -130,14 +130,14 @@ public class DEW {
             int sumB = 0;
             int[][] zigZag = dct.zigZag;
             int row, col;
-            for (int i = 64 - 1; i >= minC; i--) {
+            for (int i = 64 - 1; i >= cMin; i--) {
                 row = zigZag[i][0];
                 col = zigZag[i][1];
 
-                sumA += blockDCTA[row][col] * blockDCTA[row][col];
-                sumB += blockDCTB[row][col] * blockDCTB[row][col];
+                sumA += Math.abs(blockDCTA[row][col]) * Math.abs(blockDCTA[row][col]);
+                sumB += Math.abs(blockDCTB[row][col]) * Math.abs(blockDCTB[row][col]);
 
-                if (sumA >= D && sumB >= D) {
+                if (sumA >= d && sumB >= d) {
                     res = Math.max(i, res);
                 }
             }
@@ -149,7 +149,7 @@ public class DEW {
     }
 	
 	private ArrayList<int[][]> embedMessage(ArrayList<int[][]> blockLC, int i, Map<Integer, Integer> mapIndexC, int indexBlock) {
-        int label = binaryMessage[i];
+        int label = binaryArr[i];
         System.out.println("K nhung thu: "+ i+", Khoi thu: "+ indexBlock);
         for (int index = 0; index < n * n / 2; index++) {
             int c = mapIndexC.get(index);
@@ -173,16 +173,8 @@ public class DEW {
     	return this.blockNxNList;
     }
     
-    public BufferedImage getFrame() {
-    	return this.frame;
-    }
-    
     public ArrayList<YCrCb[][]> getBlockYCrCb() {
 		return blockYCrCb;
-	}
-    
-    public int getN() {
-		return n;
 	}
 	
     public String getPositionKey() {

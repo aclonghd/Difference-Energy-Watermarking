@@ -96,27 +96,27 @@ public class DCT
     /**
      * The ZigZag matrix.
      */
-    public int zigZag[][] = new int[64][2];
+    public int[][] zigZag = new int[64][2];
 
     /**
      * Cosine matrix. N * N.
      */
-    public double c[][]        = new double[N][N];
+    public double[][] c = new double[N][N];
 
     /**
      * Transformed cosine matrix, N*N.
      */
-    public double cT[][]       = new double[N][N];
+    public double[][] cT = new double[N][N];
 
     /**
      * Quantitization Matrix.
      */
-    public int quantum[][]     = new int[N][N];
+    public int[][] quantum = new int[N][N];
 
     /**
      * DCT Result Matrix
      */
-    public int resultDCT[][] = new int[ROWS][COLS];
+    public int[][] resultDCT = new int[ROWS][COLS];
 
     /**
      * Constructs a new DCT object. Initializes the cosine transform matrix
@@ -158,7 +158,7 @@ public class DCT
 
         for (j = 0; j < N; j++)
         {
-            double nn = (double)(N);
+            double nn = (N);
             c[0][j]  = 1.0 / Math.sqrt(nn);
             cT[j][0] = c[0][j];
         }
@@ -167,9 +167,7 @@ public class DCT
         {
             for (j = 0; j < 8; j++)
             {
-                double jj = (double)j;
-                double ii = (double)i;
-                c[i][j]  = Math.sqrt(2.0/8.0) * Math.cos(((2.0 * jj + 1.0) * ii * Math.PI) / (2.0 * 8.0));
+                c[i][j]  = Math.sqrt(2.0/8.0) * Math.cos(((2.0 * (double)j + 1.0) * (double)i * Math.PI) / (2.0 * 8.0));
                 cT[j][i] = c[i][j];
             }
         }
@@ -317,12 +315,12 @@ public class DCT
      * and the result is stored in the output matrix.
      *
      * @param input The Input Pixel Matrix
-     * @returns output The DCT Result Matrix
+     * @return output The DCT Result Matrix
      */
-    public double [][] forwardDCT(int input[][])
+    public double [][] forwardDCT(int[][] input)
     {
-        double output[][] = new double[N][N];
-        double temp[][] = new double[N][N];
+        double[][] output = new double[N][N];
+        double[][] temp = new double[N][N];
         double temp1;
         int i;
         int j;
@@ -367,18 +365,16 @@ public class DCT
      *
      * @param inputData 8x8 Array of quantitized image data
      * @param zigzag Boolean switch to enable/disable zigzag path.
-     * @returns outputData A N * N array of de-quantitized data
+     * @return outputData A N * N array of de-quantitized data
      *
      */
     public int[][] dequantitizeImage(int[][] inputData, boolean zigzag)
     {
-        int i = 0;
-        int j = 0;
-        int a = 0;
-        int b = 0;
+        int i;
+        int j;
         int row;
         int col;
-        int outputData[][] = new int[N][N];
+        int[][] outputData = new int[N][N];
 
         double result;
 
@@ -421,15 +417,13 @@ public class DCT
      *
      * @param inputData 8x8 array of DCT image data.
      * @param zigzag Boolean switch to enable/disable zigzag path.
-     * @returns outputData The quantitized output data
+     * @return outputData The quantitized output data
      */
-    public int[][] quantitizeImage(double inputData[][], boolean zigzag)
+    public int[][] quantitizeImage(double[][] inputData, boolean zigzag)
     {
-        int outputData[][] = new int[N][N];
-        int i = 0;
-        int j = 0;
-        int a = 0;
-        int b = 0;
+        int[][] outputData = new int[N][N];
+        int i;
+        int j;
         int row;
         int col;
 
@@ -470,20 +464,19 @@ public class DCT
      * accepted is quantitized DCT data. The output array should be
      * scanned to determine where the end is.
      *
-     * @param image Quantitized image data.
-     * @returns The string representation of the image. (Compressed)
+     * @param QDCT Quantitized image data.
+     * @return The string representation of the image. (Compressed)
      */
     public int[] compressImage(int[] QDCT, boolean log)
     {
         int i = 0;
         int j = 0;
-        int k = 0;
-        int temp = 0;
-        int curPos = 0;
+        int k;
+        int temp;
         int runCounter = 0;
         int imageLength = ROWS*COLS;
 
-        int pixel[] = new int[ROWS*COLS];
+        int[] pixel = new int[ROWS*COLS];
 
         while((i<imageLength))
         {
@@ -532,16 +525,16 @@ public class DCT
      * Arithmetic will give much better compression.
      *
      * @param DCT Compressed DCT int array (Expands to whole image).
-     * @returns The decompressed one dimensional array.
+     * @return The decompressed one dimensional array.
      */
     public int[] decompressImage(int[] DCT, boolean log)
     {
         int i = 0;
-        int j = 0;
+        int j;
         int k = 0;
-        int temp = 0;
+        int temp;
         int imageLength = ROWS*COLS;
-        int pixel[] = new int[ROWS*COLS];
+        int[] pixel = new int[ROWS*COLS];
 
         while (i < imageLength)
         {
@@ -597,12 +590,12 @@ public class DCT
      * of pixels.
      *
      * @param input N * N input block
-     * @returns output The pixel array output
+     * @return output The pixel array output
      */
-    public int[][] inverseDCT(int input[][])
+    public int[][] inverseDCT(int[][] input)
     {
-        int output[][] = new int[N][N];
-        double temp[][] = new double[N][N];
+        int[][] output = new int[N][N];
+        double[][] temp = new double[N][N];
         double temp1;
         int i;
         int j;
@@ -657,11 +650,11 @@ public class DCT
      * to a integer (16 bits max). Byte 0 is the most signifigant byte
      * and Byte 1 is the least signifigant byte.
      * @param bitSet Two bytes to convert
-     * @returns The constructed integer
+     * @return The constructed integer
      */
-    private int bytetoInt(byte bitSet[])
+    private int bytetoInt(byte[] bitSet)
     {
-        int returnInt = 0;
+        int returnInt;
 
         byte MSB = bitSet[0];
         byte LSB = bitSet[1];
@@ -676,13 +669,13 @@ public class DCT
      * of two bytes, byte 0, the most signifigant and byte 1, the least
      * signifigant.
      * @param count The integer to convert. (16 bit max)
-     * @returns The array of two bytes.
+     * @return The array of two bytes.
      */
     private byte[] inttoByte(int count)
     {
         int LSB = 0;
         int MSB = 0;
-        byte bitSet[] = new byte[2];
+        byte[] bitSet = new byte[2];
 
         if (!(count > 65535))
         {

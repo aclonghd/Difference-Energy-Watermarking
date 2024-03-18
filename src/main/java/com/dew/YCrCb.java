@@ -30,9 +30,9 @@ public class YCrCb {
     }
 
     public Color getColorFromYCbCr() {
-        double y = (double) Y;
-        double cb = (double) Cb;
-        double cr = (double) Cr;
+        double y = Y;
+        double cb = Cb;
+        double cr = Cr;
 
         int r = (int) (y + 1.40200 * (cr - 0x80));
         int g = (int) (y - 0.34414 * (cb - 0x80) - 0.71414 * (cr - 0x80));
@@ -41,8 +41,7 @@ public class YCrCb {
         r = Math.max(0, Math.min(255, r));
         g = Math.max(0, Math.min(255, g));
         b = Math.max(0, Math.min(255, b));
-        Color color=  new Color(r,g,b);
-        return color;
+        return new Color(r,g,b);
     }
 
     public int getY() {

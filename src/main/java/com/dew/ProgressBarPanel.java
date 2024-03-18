@@ -5,8 +5,8 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
 public class ProgressBarPanel extends JPanel {
-	private JFrame frame;
-	private JProgressBar jProgressBar;
+	private final JFrame frame;
+	private final JProgressBar jProgressBar;
 	
 	public ProgressBarPanel() {
 		super();
